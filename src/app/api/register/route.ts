@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prismadb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
       data: {
         firstName,
         lastName,
-        CustomerEmail: email,
-        password,
         customerPhone: '', // This field is required but not collected during registration
+        CustomerEmail: email,
+        password, // In a real application, hash the password before storing it
       },
     });
 

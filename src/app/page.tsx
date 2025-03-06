@@ -23,10 +23,10 @@ function Page() {
         <div className="relative">
           <img className="h-[80vh] w-full object-cover" src="/images/background.png" alt="background" />
           <div className="absolute inset-0 flex flex-col items-center justify-center text-[#fff]">
-            <h1 className={`text-7xl ${sawarabiMincho.className}`}>Hana</h1>
+            <h1 className={`text-7xl ${sawarabiMincho.className} `}>Hana</h1>
             <p className={`text-5xl ${sawarabiMincho.className}`}>Shabu & Grill</p>
             <div className="flex justify-center mt-10 mb-16">
-            <a href="/register" className="bg-[#FFB8DA] hover:bg-[#ff9ec9] text-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105">
+            <a href="/register" className="bg-[#FFB8DA] hover:bg-[#ff9ec9] text-white py-3 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 tracking-[0.1rem]">
               สมัครสมาชิกเพื่อจองโต๊ะ
             </a>
           </div>

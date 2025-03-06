@@ -9,6 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import html2canvas from 'html2canvas';
+import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
+import Link from "next/link";
 
 type BookingStatus = 'confirmed' | 'pending' | 'cancelled';
 
@@ -18,10 +21,11 @@ type BookingData = {
     date: string;
     time: string;
     people: number;
-    tableNo: string;
+    tableNo: number;
     customerName: string;
     phoneNumber: string;
     status: BookingStatus;
+    resID: number; // Add this for the actual reservation ID
 };
 
 export default function BookingHistory() {
@@ -30,72 +34,34 @@ export default function BookingHistory() {
     const [filter, setFilter] = useState("all");
     const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    
+
     // Fetch reservations from the API
     useEffect(() => {
         const fetchReservations = async () => {
             try {
-                // In a real application, you would get the customer ID from authentication
-                // For now, we'll fetch all reservations
-                const response = await fetch('/api/reservations');
-
+                const response = await fetch('/api/reservations/getre');
                 if (response.ok) {
                     const data = await response.json();
 
-                    // Transform the data to match our BookingData type
                     const formattedData: BookingData[] = data.map((reservation: any) => ({
                         id: `B${reservation.resID.toString().padStart(3, '0')}`,
                         date: reservation.resDate,
                         time: reservation.resTime,
                         people: reservation.numberOfPeople,
-                        tableNo: reservation.table ? reservation.table.tabTypes : 'Unknown',
-                        customerName: reservation.resName,
-                        phoneNumber: reservation.customer ? reservation.customer.customerPhone : 'Unknown',
-                        status: (reservation.resStatus as BookingStatus) || 'pending',
+                        tableNo: reservation.Tables_tabID,
+                        customerName: reservation.customer.firstName,
+                        phoneNumber: reservation.customer.customerPhone,
+                        status: reservation.resStatus as BookingStatus,
+                        resID: reservation.resID
                     }));
 
                     setBookingData(formattedData);
                 } else {
-                    console.error('Failed to fetch reservations');
-                    // Use sample data as fallback
-                    setBookingData([
-                        {
-                            id: "B001",
-                            date: "2025-03-05",
-                            time: "18:00",
-                            people: 4,
-                            tableNo: "A12",
-                            customerName: "คุณสมชาย ใจดี",
-                            phoneNumber: "081-234-5678",
-                            status: "confirmed",
-                        },
-                        {
-                            id: "B002",
-                            date: "2025-03-10",
-                            time: "19:30",
-                            people: 2,
-                            tableNo: "B08",
-                            customerName: "คุณสมศรี มีสุข",
-                            phoneNumber: "089-876-5432",
-                            status: "confirmed",
-                        },
-                    ]);
+                    toast.error('ไม่สามารถโหลดข้อมูลการจองได้');
                 }
             } catch (error) {
                 console.error('Error fetching reservations:', error);
-                // Use sample data as fallback
-                setBookingData([
-                    {
-                        id: "B001",
-                        date: "2025-03-05",
-                        time: "18:00",
-                        people: 4,
-                        tableNo: "A12",
-                        customerName: "คุณสมชาย ใจดี",
-                        phoneNumber: "081-234-5678",
-                        status: "confirmed",
-                    },
-                ]);
+                toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
             }
         };
 
@@ -154,9 +120,41 @@ export default function BookingHistory() {
             }
         }
     };
+    const handleCancelReservation = async (booking: BookingData) => {
+        if (!confirm('คุณต้องการยกเลิกการจองนี้ใช่หรือไม่?')) {
+            return;
+        }
 
+        try {
+            const response = await fetch('/api/reservations/cancel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ reservationId: booking.resID }),
+            });
+
+            if (response.ok) {
+                toast.success('ยกเลิกการจองเรียบร้อยแล้ว');
+                // Update local state
+                setBookingData(prevData =>
+                    prevData.map(item =>
+                        item.id === booking.id
+                            ? { ...item, status: 'cancelled' as BookingStatus }
+                            : item
+                    )
+                );
+            } else {
+                toast.error('ไม่สามารถยกเลิกการจองได้');
+            }
+        } catch (error) {
+            console.error('Error cancelling reservation:', error);
+            toast.error('เกิดข้อผิดพลาดในการยกเลิกการจอง');
+        }
+    };
     return (
         <>
+            <Toaster position="top-center" />
             <div className="hidden lg:flex fixed top-0 left-0 right-0">
                 <UserDesktopNavbar />
             </div>
@@ -184,7 +182,9 @@ export default function BookingHistory() {
                         </Select>
                     </div>
 
+                    <Link href="/reservations/">
                     <Button variant="outline">จองโต๊ะเพิ่ม</Button>
+                    </Link>
                 </div>
 
                 {/* for big screen */}
@@ -230,7 +230,11 @@ export default function BookingHistory() {
                                                         )}
                                                         {(booking.status === "confirmed" || booking.status === "pending") && (
                                                             <>
-                                                                <Button variant="destructive" size="sm">ยกเลิก</Button>
+                                                                <Button variant="destructive"
+                                                                    size="sm"
+                                                                    onClick={() => handleCancelReservation(booking)}>
+                                                                    ยกเลิก
+                                                                </Button>
                                                             </>
                                                         )}
                                                     </div>
@@ -281,7 +285,7 @@ export default function BookingHistory() {
                                 )}
                                 {(booking.status === "confirmed" || booking.status === "pending") && (
                                     <>
-                                        <Button variant="destructive" size="sm">ยกเลิก</Button>
+                                        <Button variant="destructive" size="sm" onClick={() => handleCancelReservation(booking)}>ยกเลิก</Button>
                                     </>
                                 )}
                             </CardFooter>
@@ -301,7 +305,7 @@ export default function BookingHistory() {
 
                         <div id="booking-details" className="p-4 border rounded-lg bg-white">
                             <div className="mb-4 text-center">
-                                <h3 className="text-xl font-bold">ร้านชาบูอร่อย</h3>
+                                <h3 className="text-xl font-bold">Hana Shabu & Grill</h3>
                                 <p className="text-sm text-gray-500">ใบยืนยันการจอง</p>
                             </div>
 

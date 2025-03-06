@@ -1,6 +1,6 @@
 "use client";
-import OtherDesktopNavbar from "@/components/OtherDesktopNavbar"
-import OtherMobileNavbar from "@/components/OtherMobileNavbar";
+import UserDesktopNavbar from "@/components/UserDesktopNavbar"
+import UserMobileNavbar from "@/components/UserMobileNavbar";
 import { FaRegHourglass } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -73,11 +73,11 @@ function SummaryPage() {
   return (
     <>
       <div className="hidden lg:flex fixed top-0 left-0 right-0">
-        <OtherDesktopNavbar />
+        <UserDesktopNavbar />
       </div>
 
       <div className="lg:hidden fixed top-0 left-0 right-0 z-10">
-        <OtherMobileNavbar />
+        <UserMobileNavbar />
       </div>
 
       <div className=" min-h-screen bg-gray-50 p-4 sm:p-6 flex flex-col items-center justify-center "  >
