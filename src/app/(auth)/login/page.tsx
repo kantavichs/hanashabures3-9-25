@@ -6,7 +6,7 @@ import { faCircleUser, faKey } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-
+import bcrypt from 'bcryptjs';
 
 function LoginPage() {
   //for input
@@ -31,7 +31,7 @@ function LoginPage() {
 
     const userData = {
       email,
-      password,
+      password, // Send plain password - hashing will be done on the API side
     };
 
     try {
@@ -54,8 +54,8 @@ function LoginPage() {
         router.push("/landing"); // Redirect to reservation page after login
       } else {
         // Handle login error
-        setError(data.error || "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-        toast.error(data.error || "เข้าสู่ระบบไม่สำเร็จ");
+        setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+        toast.error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
       }
     } catch (error) {
       console.error("An error occurred:", error);

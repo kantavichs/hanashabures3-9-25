@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prismadb';
 
 export async function POST(request: NextRequest) {
@@ -24,25 +25,25 @@ export async function POST(request: NextRequest) {
     // Check if user exists and password matches
     if (!user) {
       return NextResponse.json(
-        { error: 'ไม่พบบัญชีผู้ใช้นี้' },
-        { status: 404 }
-      );
-    }
-
-    // In a real application, you would use a proper password hashing library
-    // like bcrypt to compare the hashed password
-    if (user.password !== password) {
-      return NextResponse.json(
-        { error: 'รหัสผ่านไม่ถูกต้อง' },
+        { error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' },
         { status: 401 }
       );
     }
 
-    // Return user data (excluding password)
+    // Compare the provided password with the stored hash
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      return NextResponse.json(
+        { error: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' },
+        { status: 401 }
+      );
+    }
+
+    // Remove password from user object before sending
     const { password: _, ...userWithoutPassword } = user;
-    
+
     return NextResponse.json({
-      message: 'เข้าสู่ระบบสำเร็จ',
       user: userWithoutPassword,
     });
   } catch (error) {
