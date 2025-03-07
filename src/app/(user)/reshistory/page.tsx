@@ -111,6 +111,21 @@ export default function BookingHistory() {
         return new Date(dateStr).toLocaleDateString('th-TH', options);
     };
 
+    // Add this helper function near your other formatting functions
+    const formatTime = (timeStr: string) => {
+        // If timeStr is already in HH:mm format, return as is
+        if (timeStr.match(/^\d{2}:\d{2}$/)) {
+            return timeStr;
+        }
+        // Otherwise, parse the time string and format it
+        const date = new Date(timeStr);
+        return date.toLocaleTimeString('th-TH', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+    };
+
     const handleViewDetails = (booking: typeof bookingData[0]) => {
         if (booking.status === "confirmed") {
             setSelectedBooking(booking);
@@ -233,7 +248,7 @@ export default function BookingHistory() {
                                             <TableRow key={booking.id}>
                                                 <TableCell className="font-medium">{booking.id}</TableCell>
                                                 <TableCell>{formatDate(booking.date)}</TableCell>
-                                                <TableCell>{booking.time} น.</TableCell>
+                                                <TableCell>{formatTime(booking.time)} น.</TableCell>
                                                 <TableCell>{booking.people} คน</TableCell>
                                                 <TableCell>{booking.tableNo}</TableCell>
                                                 <TableCell>{getStatusBadge(booking.status)}</TableCell>
@@ -278,7 +293,7 @@ export default function BookingHistory() {
                                     {getStatusBadge(booking.status)}
                                 </div>
                                 <p className="text-sm text-gray-500">
-                                    {formatDate(booking.date)} | {booking.time} น.
+                                    {formatDate(booking.date)} | {formatTime(booking.time)} น.
                                 </p>
                             </CardHeader>
                             <CardContent>
@@ -355,7 +370,7 @@ export default function BookingHistory() {
 
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="text-gray-600">เวลา:</div>
-                                <div className="font-medium">{selectedBooking?.time} น.</div>
+                                <div className="font-medium">{formatTime(selectedBooking?.time || '')} น.</div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2">
