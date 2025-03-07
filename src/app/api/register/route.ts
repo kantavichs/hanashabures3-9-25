@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismadb';
+import bcrypt from 'bcrypt';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,15 +29,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new user
-    // In a real application, you would hash the password before storing it
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create new user with hashed password
     const newUser = await prisma.customer.create({
       data: {
         firstName,
         lastName,
-        customerPhone: '', // This field is required but not collected during registration
         CustomerEmail: email,
-        password, // In a real application, hash the password before storing it
+        password: hashedPassword,
       },
     });
 

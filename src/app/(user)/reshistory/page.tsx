@@ -39,7 +39,24 @@ export default function BookingHistory() {
     useEffect(() => {
         const fetchReservations = async () => {
             try {
-                const response = await fetch('/api/reservations/getre');
+                // Get user data from localStorage
+                const storedUserData = localStorage.getItem('userData');
+                if (!storedUserData) {
+                    toast.error('กรุณาเข้าสู่ระบบก่อนดูประวัติการจอง');
+                    return;
+                }
+
+                // Parse user data to get customer ID
+                const userData = JSON.parse(storedUserData);
+                const customerID = userData.customerID;
+
+                if (!customerID) {
+                    toast.error('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
+                    return;
+                }
+
+                // Fetch reservations for this specific user
+                const response = await fetch(`/api/reservations/getre?customerID=${customerID}`);
                 if (response.ok) {
                     const data = await response.json();
 
@@ -50,7 +67,7 @@ export default function BookingHistory() {
                         people: reservation.numberOfPeople,
                         tableNo: reservation.Tables_tabID,
                         customerName: reservation.customer.firstName,
-                        phoneNumber: reservation.customer.customerPhone,
+                        phoneNumber: reservation.resPhone,
                         status: reservation.resStatus as BookingStatus,
                         resID: reservation.resID
                     }));
@@ -73,6 +90,9 @@ export default function BookingHistory() {
         : bookingData.filter(booking => booking.status === filter);
 
     const getStatusBadge = (status: BookingStatus) => {
+        // ตรวจสอบว่า status ที่ได้รับมีค่าถูกต้องหรือไม่
+        const validStatus = ['confirmed', 'pending', 'cancelled'].includes(status) ? status : 'pending';
+
         const statusConfig = {
             confirmed: { label: "ยืนยันแล้ว", className: "bg-green-500 text-white" },
             pending: { label: "รอยืนยัน", className: "bg-yellow-500 text-white" },
@@ -80,8 +100,8 @@ export default function BookingHistory() {
         };
 
         return (
-            <Badge className={statusConfig[status].className}>
-                {statusConfig[status].label}
+            <Badge className={statusConfig[validStatus].className}>
+                {statusConfig[validStatus].label}
             </Badge>
         );
     };
@@ -183,7 +203,7 @@ export default function BookingHistory() {
                     </div>
 
                     <Link href="/reservations/">
-                    <Button variant="outline">จองโต๊ะเพิ่ม</Button>
+                        <Button variant="outline">จองโต๊ะเพิ่ม</Button>
                     </Link>
                 </div>
 
@@ -219,15 +239,15 @@ export default function BookingHistory() {
                                                 <TableCell>{getStatusBadge(booking.status)}</TableCell>
                                                 <TableCell>
                                                     <div className="flex space-x-2">
-                                                        {booking.status === "confirmed" && (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => handleViewDetails(booking)}
-                                                            >
-                                                                ดูรายละเอียด
-                                                            </Button>
-                                                        )}
+                                                    {(booking.status === "confirmed") && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleViewDetails(booking)}
+                                                        >
+                                                            ดูรายละเอียด
+                                                        </Button>
+                                                    )}
                                                         {(booking.status === "confirmed" || booking.status === "pending") && (
                                                             <>
                                                                 <Button variant="destructive"
@@ -274,98 +294,101 @@ export default function BookingHistory() {
                                 </div>
                             </CardContent>
                             <CardFooter>
-                                {booking.status === "confirmed" && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleViewDetails(booking)}
-                                    >
-                                        ดูรายละเอียด
-                                    </Button>
+                                {(booking.status === "confirmed") && (
+                               <>
+                               <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleViewDetails(booking)}
+                                >
+                                ดูรายละเอียด
+                                </Button>
+                            </>
                                 )}
-                                {(booking.status === "confirmed" || booking.status === "pending") && (
-                                    <>
-                                        <Button variant="destructive" size="sm" onClick={() => handleCancelReservation(booking)}>ยกเลิก</Button>
-                                    </>
-                                )}
-                            </CardFooter>
+                                
+                            {(booking.status === "confirmed" || booking.status === "pending") && (
+                                <>
+                                    <Button variant="destructive" size="sm" onClick={() => handleCancelReservation(booking)}>ยกเลิก</Button>
+                                </>
+                            )}
+                        </CardFooter>
                         </Card>
                     ))}
-                </div>
+            </div>
 
-                {/* Modal รายละเอียดการจอง */}
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>รายละเอียดการจอง</DialogTitle>
-                            <DialogDescription>
-                                รหัสการจอง: {selectedBooking?.id}
-                            </DialogDescription>
-                        </DialogHeader>
+            {/* Modal รายละเอียดการจอง */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>รายละเอียดการจอง</DialogTitle>
+                        <DialogDescription>
+                            รหัสการจอง: {selectedBooking?.id}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                        <div id="booking-details" className="p-4 border rounded-lg bg-white">
-                            <div className="mb-4 text-center">
-                                <h3 className="text-xl font-bold">Hana Shabu & Grill</h3>
-                                <p className="text-sm text-gray-500">ใบยืนยันการจอง</p>
-                            </div>
-
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-gray-600">รหัสการจอง:</div>
-                                    <div className="font-medium">{selectedBooking?.id}</div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-gray-600">ชื่อผู้จอง:</div>
-                                    <div className="font-medium">{selectedBooking?.customerName}</div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-gray-600">เบอร์โทรศัพท์:</div>
-                                    <div className="font-medium">{selectedBooking?.phoneNumber}</div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-gray-600">วันที่:</div>
-                                    <div className="font-medium">{selectedBooking ? formatDate(selectedBooking.date) : ''}</div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-gray-600">เวลา:</div>
-                                    <div className="font-medium">{selectedBooking?.time} น.</div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-gray-600">จำนวนคน:</div>
-                                    <div className="font-medium">{selectedBooking?.people} คน</div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="text-gray-600">โต๊ะ:</div>
-                                    <div className="font-medium">{selectedBooking?.tableNo}</div>
-                                </div>
-
-                                <div className="mt-4 pt-4 border-t border-gray-200 text-center text-sm">
-                                    <p>กรุณาแสดงรายละเอียดนี้เมื่อมาถึงร้าน</p>
-                                    <p>ขอบคุณที่ใช้บริการ</p>
-                                </div>
-                            </div>
+                    <div id="booking-details" className="p-4 border rounded-lg bg-white">
+                        <div className="mb-4 text-center">
+                            <h3 className="text-xl font-bold">Hana Shabu & Grill</h3>
+                            <p className="text-sm text-gray-500">ใบยืนยันการจอง</p>
                         </div>
 
-                        <DialogFooter className="sm:justify-between">
-                            <DialogClose asChild>
-                                <Button variant="outline">ปิด</Button>
-                            </DialogClose>
-                            <Button
-                                variant="default"
-                                onClick={handleCaptureDetails}
-                            >
-                                บันทึกรายละเอียด
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="text-gray-600">รหัสการจอง:</div>
+                                <div className="font-medium">{selectedBooking?.id}</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="text-gray-600">ชื่อผู้จอง:</div>
+                                <div className="font-medium">{selectedBooking?.customerName}</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="text-gray-600">เบอร์โทรศัพท์:</div>
+                                <div className="font-medium">{selectedBooking?.phoneNumber}</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="text-gray-600">วันที่:</div>
+                                <div className="font-medium">{selectedBooking ? formatDate(selectedBooking.date) : ''}</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="text-gray-600">เวลา:</div>
+                                <div className="font-medium">{selectedBooking?.time} น.</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="text-gray-600">จำนวนคน:</div>
+                                <div className="font-medium">{selectedBooking?.people} คน</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="text-gray-600">โต๊ะ:</div>
+                                <div className="font-medium">{selectedBooking?.tableNo}</div>
+                            </div>
+
+                            <div className="mt-4 pt-4 border-t border-gray-200 text-center text-sm">
+                                <p>กรุณาแสดงรายละเอียดนี้เมื่อมาถึงร้าน</p>
+                                <p>ขอบคุณที่ใช้บริการ</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="sm:justify-between">
+                        <DialogClose asChild>
+                            <Button variant="outline">ปิด</Button>
+                        </DialogClose>
+                        <Button
+                            variant="default"
+                            onClick={handleCaptureDetails}
+                        >
+                            บันทึกรายละเอียด
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div >
         </>
     );
 

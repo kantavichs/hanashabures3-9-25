@@ -12,7 +12,8 @@ export async function POST(request: Request) {
       tableNumber, 
       reservationDate, 
       reservationTime,
-      status 
+      status,
+      customerID 
     } = body;
 
     // Validate required fields
@@ -38,22 +39,24 @@ export async function POST(request: Request) {
       }, { status: 409 });
     }
 
-    // Check if customer exists or create a new one
-    let customer = await prisma.customer.findFirst({
-      where: { customerPhone: phoneNumber }
-    });
-
-    if (!customer) {
-      customer = await prisma.customer.create({
+    // If customerID is provided (user is logged in), use that
+    // Otherwise, check if customer exists or create a new one
+    let customerId = customerID;
+    
+    if (!customerId) {
+      // Changed: No longer finding customer by phone number
+      // Instead, create a new customer without storing the phone number
+      const customer = await prisma.customer.create({
         data: {
           firstName: customerName,
           lastName: '', // Provide a default or actual last name
           CustomerEmail: '', // Provide a default or actual email
           password: '', // Provide a default or actual password
-          customerPhone: phoneNumber,
           cusCreatedAt: new Date()
         }
       });
+      
+      customerId = customer.customerID;
     }
 
     // Create the reservation
@@ -64,11 +67,11 @@ export async function POST(request: Request) {
         numberOfPeople: parseInt(numberOfPeople.toString()),
         resStatus: status || 'pending',
         resCreatedAt: new Date(),
-        Customer_customerID: customer.customerID,
-        Tables_tabID: parseInt(tableNumber.toString())
+        Customer_customerID: customerId,
+        Tables_tabID: parseInt(tableNumber.toString()),
+        resPhone: phoneNumber.toString(), // Phone number is only stored here now
       }
     });
-
     return NextResponse.json({ 
       success: true, 
       message: 'จองโต๊ะเรียบร้อยแล้ว', 

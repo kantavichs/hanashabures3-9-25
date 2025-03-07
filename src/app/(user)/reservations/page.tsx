@@ -112,6 +112,7 @@ export default function ReservationDesktop() {
   const [loading, setLoading] = useState(false);
   const [availableTables, setAvailableTables] = useState<number[]>([]);
   const [bookedTables, setBookedTables] = useState<number[]>([]);
+  const [userData, setUserData] = useState<any>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -152,6 +153,27 @@ export default function ReservationDesktop() {
     //toast.success(`เลือกโต๊ะที่ ${tableNum} (กรุณากดปุ่ม "ยืนยันการจอง" เพื่อทำการจองให้เสร็จสิ้น)`);
     toast.info(`เลือกโต๊ะที่ ${tableNum} แล้ว (กรุณากดปุ่ม "ยืนยันการจอง" เพื่อทำการจองให้เสร็จสิ้น)`);
   };
+
+  // Get user data from localStorage when component mounts
+  useEffect(() => {
+    const storedUserData = localStorage.getItem('userData');
+    if (storedUserData) {
+      try {
+        const parsedUserData = JSON.parse(storedUserData);
+        setUserData(parsedUserData);
+        
+        // Pre-fill the form with user data if available
+        if (parsedUserData.firstName) {
+          dispatch({ type: 'SET_FIELD', field: 'name', value: parsedUserData.firstName });
+        }
+        if (parsedUserData.resPhone) {
+          dispatch({ type: 'SET_FIELD', field: 'phone', value: parsedUserData.resPhone });
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   // Check available tables when date changes
   useEffect(() => {
@@ -241,7 +263,8 @@ export default function ReservationDesktop() {
         tableNumber: state.selectedTable,
         reservationDate: state.reservationDate,
         reservationTime: state.reservationTime || '18:00',
-        status: 'confirmed'
+        status: 'pending',
+        customerID: userData?.customerID // Include the logged-in user's ID if available
       };
       
       const response = await fetch('/api/reservations/create', {

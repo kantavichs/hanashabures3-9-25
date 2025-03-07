@@ -33,7 +33,6 @@ model customer {
   customerID    Int            @id @default(autoincrement())
   firstName     String
   lastName      String
-  customerPhone String
   cusCreatedAt  DateTime      @default(now())
   CustomerEmail String        @unique
   password      String
@@ -112,6 +111,7 @@ model reservations {
   resCreatedAt        DateTime
   Customer_customerID Int
   Tables_tabID        Int
+  resPhone            String
   customer            customer @relation(fields: [Customer_customerID], references: [customerID], map: "Reservations_Customer_customerID_fkey")
   tables              tables   @relation(fields: [Tables_tabID], references: [tabID], map: "Reservations_Tables_tabID_fkey")
 

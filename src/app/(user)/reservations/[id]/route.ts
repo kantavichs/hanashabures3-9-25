@@ -36,7 +36,7 @@ export async function GET(
     const formattedReservation = {
       id: reservation.resID,
       customerName: reservation.customer.firstName,
-      phoneNumber: reservation.customer.customerPhone,
+      resPhone: reservation.resPhone, // Use phone from reservations table instead of customer table
       numberOfPeople: reservation.numberOfPeople,
       tableNumber: reservation.Tables_tabID,
       reservationDate: reservation.resDate,
