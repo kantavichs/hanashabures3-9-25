@@ -21,13 +21,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'กรุณากรอกข้อมูลให้ครบถ้วน' }, { status: 400 });
     }
 
+    // แปลง reservationDate เป็น Date object (เฉพาะวันที่)
+    const parsedDate = new Date(reservationDate);
+    // ตั้งเวลาเป็น 00:00:00 เพื่อให้เก็บเฉพาะวันที่
+    parsedDate.setHours(0, 0, 0, 0);
+
+    // แปลง reservationTime เป็น Date object (เฉพาะเวลา)
+    const [hours, minutes] = reservationTime.split(':');
+    const timeString = `1970-01-01T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00.000Z`;
+    const parsedTime = new Date(timeString);
+
     // Check if the table is already booked for the selected date and time
     const existingReservation = await prisma.reservations.findFirst({
       where: {
         AND: [
           { Tables_tabID: Number(tableNumber) },
-          { resDate: reservationDate },
-          { resTime: reservationTime },
+          { resDate: parsedDate },
+          { resTime: parsedTime },
           { resStatus: { not: 'cancelled' } }
         ]
       }
@@ -44,14 +54,12 @@ export async function POST(request: Request) {
     let customerId = customerID;
     
     if (!customerId) {
-      // Changed: No longer finding customer by phone number
-      // Instead, create a new customer without storing the phone number
       const customer = await prisma.customer.create({
         data: {
           firstName: customerName,
-          lastName: '', // Provide a default or actual last name
-          CustomerEmail: '', // Provide a default or actual email
-          password: '', // Provide a default or actual password
+          lastName: '',
+          CustomerEmail: '',
+          password: '',
           cusCreatedAt: new Date()
         }
       });
@@ -59,19 +67,20 @@ export async function POST(request: Request) {
       customerId = customer.customerID;
     }
 
-    // Create the reservation
+    // Create the reservation with parsed date and time
     const newReservation = await prisma.reservations.create({
       data: {
-        resDate: reservationDate,
-        resTime: reservationTime,
+        resDate: parsedDate,
+        resTime: parsedTime,
         numberOfPeople: parseInt(numberOfPeople.toString()),
         resStatus: status || 'pending',
         resCreatedAt: new Date(),
         Customer_customerID: customerId,
         Tables_tabID: parseInt(tableNumber.toString()),
-        resPhone: phoneNumber.toString(), // Phone number is only stored here now
+        resPhone: phoneNumber.toString(),
       }
     });
+
     return NextResponse.json({ 
       success: true, 
       message: 'จองโต๊ะเรียบร้อยแล้ว', 

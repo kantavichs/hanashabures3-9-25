@@ -4,17 +4,24 @@ import { prisma } from '../../../../lib/prismadb';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date');
+    const dateString = searchParams.get('date');
 
-    if (!date) {
+    if (!dateString) {
       return NextResponse.json({ message: 'กรุณาระบุวันที่' }, { status: 400 });
     }
+
+    const date = new Date(dateString);
+    date.setUTCHours(0, 0, 0, 0);
 
     // Get all booked tables for the specified date
     const bookedReservations = await prisma.reservations.findMany({
       where: {
-        resDate: date,
-        resStatus: { not: 'cancelled' }
+        resDate: {
+          equals: date
+        },
+        resStatus: { 
+          not: 'cancelled' 
+        }
       },
       select: {
         Tables_tabID: true
@@ -38,7 +45,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ 
       bookedTables,
       availableTables,
-      date
+      date: dateString
     });
     
   } catch (error) {

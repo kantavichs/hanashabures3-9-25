@@ -104,8 +104,8 @@ model payment {
 
 model reservations {
   resID               Int      @id @default(autoincrement())
-  resDate             String
-  resTime             String
+  resDate             DateTime @db.Date
+  resTime             DateTime  @db.Time
   numberOfPeople      Int
   resStatus           String?
   resCreatedAt        DateTime
