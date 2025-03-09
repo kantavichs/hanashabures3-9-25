@@ -36,8 +36,8 @@ export async function POST(request: Request) {
       where: {
         AND: [
           { Tables_tabID: Number(tableNumber) },
-          { resDate: parsedDate },
-          { resTime: parsedTime },
+          { resDate: parsedDate.toISOString() },
+          { resTime: parsedTime.toISOString() },
           { resStatus: { not: 'cancelled' } }
         ]
       }
@@ -70,8 +70,8 @@ export async function POST(request: Request) {
     // Create the reservation with parsed date and time
     const newReservation = await prisma.reservations.create({
       data: {
-        resDate: parsedDate,
-        resTime: parsedTime,
+        resDate: parsedDate.toISOString(),
+        resTime: parsedTime.toISOString(),
         numberOfPeople: parseInt(numberOfPeople.toString()),
         resStatus: status || 'pending',
         resCreatedAt: new Date(),
